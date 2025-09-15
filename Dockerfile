@@ -4,18 +4,23 @@ FROM golang:alpine AS builder
 # Set the working directory
 WORKDIR /app
 
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
 # Copy the source code into the image
-COPY main.go .
+COPY . .
 
 # Build the binary
-RUN CGO_ENABLED=0 GOOS=linux go build -o dum-flyway-validate -ldflags="-w -s" main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o dum-flyway-validate -ldflags="-w -s" ./cmd
 
 # Use a minimal Alpine image for the final image
 FROM alpine:latest
 
 # Install required tools
-RUN apk --update add curl git \
-    && rm -rf /var/cache/apk/*
+RUN apk --no-cache --update add curl git
 
 # Set the working directory
 WORKDIR /app
